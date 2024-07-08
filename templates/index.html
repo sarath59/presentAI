@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Presentation Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #404040;
+            background-color: #F8F8F8;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #FFFFFF;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #0070C0;
+            text-align: center;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        input[type="submit"] {
+            background-color: #0070C0;
+            color: #FFFFFF;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        input[type="submit"]:hover {
+            background-color: #005999;
+        }
+        #terminal {
+            background-color: #000;
+            color: #00FF00;
+            font-family: monospace;
+            padding: 10px;
+            margin-top: 20px;
+            border-radius: 4px;
+            height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Presentation Generator</h1>
+        <form id="generateForm">
+            <label for="agenda">Enter the meeting agenda:</label>
+            <input type="text" id="agenda" name="agenda" required>
+            <input type="submit" value="Generate Presentation">
+        </form>
+        <div id="terminal"></div>
+    </div>
+    <script>
+        const form = document.getElementById('generateForm');
+        const terminal = document.getElementById('terminal');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            terminal.innerHTML = '';
+            const formData = new FormData(form);
+            
+            // Start SSE connection
+            const eventSource = new EventSource('/stream');
+            eventSource.onmessage = function(event) {
+                terminal.innerHTML += event.data + '<br>';
+                terminal.scrollTop = terminal.scrollHeight;
+            };
+
+            // Submit form
+            const response = await fetch('/generate', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'AI_Generated_Presentation.pptx';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            } else {
+                console.error('Error generating presentation');
+            }
+
+            // Close SSE connection
+            eventSource.close();
+        });
+    </script>
+</body>
+</html>
